@@ -1,0 +1,244 @@
+<html>
+<head>
+<title>acfe_methods.py</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.ln { color: #606366; font-weight: normal; font-style: normal; }
+.s0 { color: rgb(98,151,85); font-style: italic; }
+.s1 { color: rgb(169,183,198); }
+.s2 { color: rgb(204,120,50); }
+.s3 { color: rgb(104,151,187); }
+.s4 { color: rgb(106,135,89); }
+.s5 { color: rgb(128,128,128); }
+</style>
+</head>
+<BODY BGCOLOR="#2b2b2b">
+<TABLE CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<TR><TD><CENTER>
+<FONT FACE="Arial, Helvetica" COLOR="#000000">
+acfe_methods.py</FONT>
+</center></TD></TR></TABLE>
+<pre>
+<span class="s0">&quot;&quot;&quot; 
+-- APPENDIX A -- 
+Implemented methods for AC-FE, reused in various questions 
+@author: Rong Feng &lt;rmfeng@gmail.com&gt; 
+&quot;&quot;&quot;</span><span class="s1"> 
+ 
+ 
+</span><span class="s2">import </span><span class="s1">numpy </span><span class="s2">as </span><span class="s1">np 
+ 
+DEFAULT_THRESH = </span><span class="s3">10 </span><span class="s1">** -</span><span class="s3">12</span><span class="s1"> 
+ 
+</span><span class="s4">&quot;&quot;&quot; 
+-- Section 1 -- Black Scholes 
+&quot;&quot;&quot;</span><span class="s1"> 
+ 
+</span><span class="s2">def </span><span class="s1">f_1(x): 
+    </span><span class="s2">return </span><span class="s1">np.exp(-(x ** </span><span class="s3">2</span><span class="s1">) / </span><span class="s3">2</span><span class="s1">) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">norm_pdf(x): 
+    </span><span class="s2">return </span><span class="s1">(</span><span class="s3">1 </span><span class="s1">/ np.sqrt(</span><span class="s3">2 </span><span class="s1">* np.pi)) * np.exp(-(x ** </span><span class="s3">2</span><span class="s1">) / </span><span class="s3">2</span><span class="s1">) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">i_simpson(a</span><span class="s2">, </span><span class="s1">b</span><span class="s2">, </span><span class="s1">n</span><span class="s2">, </span><span class="s1">fofx): 
+    </span><span class="s0">&quot;&quot;&quot; numeric implementation of the simpson's rule &quot;&quot;&quot;</span><span class="s1"> 
+    h = (b - a) / n 
+    i_simp = fofx(a) / </span><span class="s3">6 </span><span class="s1">+ fofx(b) / </span><span class="s3">6</span><span class="s1"> 
+    </span><span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">range(</span><span class="s3">1</span><span class="s2">, </span><span class="s1">n): 
+        i_simp += fofx(a + i * h) / </span><span class="s3">3</span><span class="s1"> 
+    </span><span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">range(</span><span class="s3">1</span><span class="s2">, </span><span class="s1">n + </span><span class="s3">1</span><span class="s1">): 
+        i_simp += </span><span class="s3">2 </span><span class="s1">* fofx(a + (i - </span><span class="s3">0.5</span><span class="s1">) * h) / </span><span class="s3">3</span><span class="s1"> 
+    </span><span class="s2">return </span><span class="s1">h * i_simp 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">norm_cdf(x</span><span class="s2">, </span><span class="s1">n): 
+    </span><span class="s0">&quot;&quot;&quot; using the simpson's rull with n intervals, estimate the normal cdf &quot;&quot;&quot;</span><span class="s1"> 
+    </span><span class="s2">if </span><span class="s1">x &gt; </span><span class="s3">0</span><span class="s1">: 
+        </span><span class="s2">return </span><span class="s3">0.5 </span><span class="s1">+ (</span><span class="s3">1 </span><span class="s1">/ np.sqrt(</span><span class="s3">2 </span><span class="s1">* np.pi)) * i_simpson(</span><span class="s3">0</span><span class="s2">, </span><span class="s1">x</span><span class="s2">, </span><span class="s1">n</span><span class="s2">, </span><span class="s1">f_1) 
+    </span><span class="s2">elif </span><span class="s1">x &lt; </span><span class="s3">0</span><span class="s1">: 
+        </span><span class="s2">return </span><span class="s3">0.5 </span><span class="s1">- (</span><span class="s3">1 </span><span class="s1">/ np.sqrt(</span><span class="s3">2 </span><span class="s1">* np.pi)) * i_simpson(x</span><span class="s2">, </span><span class="s3">0</span><span class="s2">, </span><span class="s1">n</span><span class="s2">, </span><span class="s1">f_1) 
+    </span><span class="s2">else</span><span class="s1">: 
+        </span><span class="s2">return </span><span class="s3">0.5</span><span class="s1"> 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">norm_cdf_thresh(x</span><span class="s2">, </span><span class="s1">thresh): 
+    </span><span class="s0">&quot;&quot;&quot; given a threshold, will return the normal cdf using simpson's rule to an 
+    accuracy close of atleast that threshold 
+    &quot;&quot;&quot;</span><span class="s1"> 
+    n_0</span><span class="s2">, </span><span class="s1">n = </span><span class="s3">4</span><span class="s2">, </span><span class="s3">8</span><span class="s1"> 
+    i_old</span><span class="s2">, </span><span class="s1">i_new = norm_cdf(x</span><span class="s2">, </span><span class="s1">n_0)</span><span class="s2">, </span><span class="s1">norm_cdf(x</span><span class="s2">, </span><span class="s1">n) 
+    </span><span class="s2">while </span><span class="s1">(np.abs(i_new - i_old) &gt; thresh): 
+        i_old = i_new 
+        n = </span><span class="s3">2 </span><span class="s1">* n 
+        i_new = norm_cdf(x</span><span class="s2">, </span><span class="s1">n) 
+    </span><span class="s2">return </span><span class="s1">i_new 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">norm_cdf_def_thresh(x): 
+    </span><span class="s0">&quot;&quot;&quot; returns the normal cdf using the default threshold specificed in the sheet &quot;&quot;&quot;</span><span class="s1"> 
+    </span><span class="s2">return </span><span class="s1">norm_cdf_thresh(x</span><span class="s2">, </span><span class="s1">DEFAULT_THRESH) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">bs_price(T</span><span class="s2">, </span><span class="s1">isCall</span><span class="s2">, </span><span class="s1">S</span><span class="s2">, </span><span class="s1">K</span><span class="s2">, </span><span class="s1">vol</span><span class="s2">, </span><span class="s1">r</span><span class="s2">, </span><span class="s1">q</span><span class="s2">, </span><span class="s1">n_cdf): 
+    </span><span class="s0">&quot;&quot;&quot; black scholes price &quot;&quot;&quot;</span><span class="s1"> 
+    d1 = (np.log(S / K) + (r - q + (vol ** </span><span class="s3">2</span><span class="s1">) / </span><span class="s3">2</span><span class="s1">) * T) / (vol * np.sqrt(T)) 
+    d2 = d1 - (vol * np.sqrt(T)) 
+ 
+    </span><span class="s2">if </span><span class="s1">isCall: 
+        </span><span class="s5"># call</span><span class="s1"> 
+        </span><span class="s2">return </span><span class="s1">S * np.exp(-q * T) * n_cdf(d1) - K * np.exp(-r * T) * n_cdf(d2) 
+    </span><span class="s2">else</span><span class="s1">: 
+        </span><span class="s5"># put</span><span class="s1"> 
+        </span><span class="s2">return </span><span class="s1">K * np.exp(-r * T) * n_cdf(-d2) - S * np.exp(-q * T) * n_cdf(-d1) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">bs_vega(T</span><span class="s2">, </span><span class="s1">S</span><span class="s2">, </span><span class="s1">K</span><span class="s2">, </span><span class="s1">vol</span><span class="s2">, </span><span class="s1">r</span><span class="s2">, </span><span class="s1">q</span><span class="s2">, </span><span class="s1">n_pdf): 
+    </span><span class="s0">&quot;&quot;&quot; black scholes vega &quot;&quot;&quot;</span><span class="s1"> 
+    d1 = (np.log(S / K) + (r - q + (vol ** </span><span class="s3">2</span><span class="s1">) / </span><span class="s3">2</span><span class="s1">) * T) / (vol * np.sqrt(T)) 
+    </span><span class="s2">return </span><span class="s1">S * n_pdf(d1) * np.sqrt(T) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">imp_vol_newton(px</span><span class="s2">, </span><span class="s1">v_guess</span><span class="s2">, </span><span class="s1">T</span><span class="s2">, </span><span class="s1">isCall</span><span class="s2">, </span><span class="s1">S</span><span class="s2">, </span><span class="s1">K</span><span class="s2">, </span><span class="s1">r</span><span class="s2">, </span><span class="s1">q</span><span class="s2">, </span><span class="s1">n_pdf</span><span class="s2">, </span><span class="s1">n_cdf</span><span class="s2">, </span><span class="s1">tol=</span><span class="s3">10</span><span class="s1">**-</span><span class="s3">6</span><span class="s2">, </span><span class="s1">max_iter=</span><span class="s3">100</span><span class="s1">): 
+    </span><span class="s0">&quot;&quot;&quot; uses newton's method to solve for implied vol &quot;&quot;&quot;</span><span class="s1"> 
+    cur_iter = </span><span class="s3">0</span><span class="s1"> 
+    cur_vol = v_guess 
+    cur_f_val = bs_price(T</span><span class="s2">, </span><span class="s1">isCall</span><span class="s2">, </span><span class="s1">S</span><span class="s2">, </span><span class="s1">K</span><span class="s2">, </span><span class="s1">cur_vol</span><span class="s2">, </span><span class="s1">r</span><span class="s2">, </span><span class="s1">q</span><span class="s2">, </span><span class="s1">n_cdf) - px 
+    print(</span><span class="s4">&quot;initial guessed vol price =&quot;</span><span class="s2">, </span><span class="s1">cur_f_val + px) 
+ 
+    </span><span class="s2">while </span><span class="s1">cur_iter &lt; max_iter </span><span class="s2">and </span><span class="s1">np.abs(cur_f_val) &gt; tol: 
+        print(</span><span class="s4">&quot;Not close enough, doing next iteration ...&quot;</span><span class="s1">) 
+        cur_vega = bs_vega(T</span><span class="s2">, </span><span class="s1">S</span><span class="s2">, </span><span class="s1">K</span><span class="s2">, </span><span class="s1">cur_vol</span><span class="s2">, </span><span class="s1">r</span><span class="s2">, </span><span class="s1">q</span><span class="s2">, </span><span class="s1">n_pdf) 
+        print(</span><span class="s4">&quot;current vega =&quot;</span><span class="s2">, </span><span class="s1">cur_vega) 
+        cur_vol = cur_vol - (cur_f_val / cur_vega) 
+        print(</span><span class="s4">&quot;new vol =&quot;</span><span class="s2">, </span><span class="s1">cur_vol) 
+        cur_f_val = bs_price(T</span><span class="s2">, </span><span class="s1">isCall</span><span class="s2">, </span><span class="s1">S</span><span class="s2">, </span><span class="s1">K</span><span class="s2">, </span><span class="s1">cur_vol</span><span class="s2">, </span><span class="s1">r</span><span class="s2">, </span><span class="s1">q</span><span class="s2">, </span><span class="s1">n_cdf) - px 
+        print(</span><span class="s4">&quot;new price =&quot;</span><span class="s2">, </span><span class="s1">cur_f_val + px</span><span class="s2">, </span><span class="s4">&quot;</span><span class="s2">\n</span><span class="s4">&quot;</span><span class="s1">) 
+        cur_iter += </span><span class="s3">1</span><span class="s1"> 
+ 
+    </span><span class="s2">return </span><span class="s1">cur_vol 
+ 
+</span><span class="s4">&quot;&quot;&quot; 
+-- Section 2 -- Bond Math 
+&quot;&quot;&quot;</span><span class="s1"> 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">df_fn(t</span><span class="s2">, </span><span class="s1">r_of_t): 
+    </span><span class="s2">return </span><span class="s1">np.exp(-r_of_t(t) * t) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">df_yld(t</span><span class="s2">, </span><span class="s1">yld): 
+    </span><span class="s2">return </span><span class="s1">np.exp(-yld * t) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">gen_cf(t_list</span><span class="s2">, </span><span class="s1">cpn_rate</span><span class="s2">, </span><span class="s1">cpn_per_y</span><span class="s2">, </span><span class="s1">par=</span><span class="s3">100</span><span class="s1">): 
+    cf = cpn_rate * par / cpn_per_y 
+    total_len = len(t_list) 
+    cf_list = [cf] * total_len 
+    cf_list[-</span><span class="s3">1</span><span class="s1">] += par 
+    </span><span class="s2">return </span><span class="s1">cf_list 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">gen_t_list(mat_in_m</span><span class="s2">, </span><span class="s1">freq): 
+    interval_in_m = </span><span class="s3">12 </span><span class="s1">/ freq 
+    </span><span class="s2">return </span><span class="s1">np.arange((mat_in_m % interval_in_m)/</span><span class="s3">12</span><span class="s2">, </span><span class="s1">(mat_in_m + </span><span class="s3">1</span><span class="s1">)/</span><span class="s3">12</span><span class="s2">, </span><span class="s1">interval_in_m / </span><span class="s3">12</span><span class="s1">)[</span><span class="s3">0</span><span class="s1">:] 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">price_bond(yld</span><span class="s2">, </span><span class="s1">mat_in_m</span><span class="s2">, </span><span class="s1">cpn_rate</span><span class="s2">, </span><span class="s1">freq): 
+    </span><span class="s0">&quot;&quot;&quot; prices a bullet bond given yield&quot;&quot;&quot;</span><span class="s1"> 
+    t_list = gen_t_list(mat_in_m</span><span class="s2">, </span><span class="s1">freq) 
+    cf_list = gen_cf(t_list</span><span class="s2">, </span><span class="s1">cpn_rate</span><span class="s2">, </span><span class="s1">freq) 
+    </span><span class="s2">return </span><span class="s1">price_bond_w_lists(yld</span><span class="s2">, </span><span class="s1">t_list</span><span class="s2">, </span><span class="s1">cf_list) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">price_bond_w_lists(yld</span><span class="s2">, </span><span class="s1">t_list</span><span class="s2">, </span><span class="s1">cf_list): 
+    </span><span class="s0">&quot;&quot;&quot; prices a bond given list of times and list of cfs &quot;&quot;&quot;</span><span class="s1"> 
+    </span><span class="s2">assert </span><span class="s1">len(t_list) == len(cf_list) 
+    df_list = df_yld(t_list</span><span class="s2">, </span><span class="s1">yld) 
+    </span><span class="s2">return </span><span class="s1">np.sum(cf_list * df_list) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">bond_yield_deriv(yld</span><span class="s2">, </span><span class="s1">mat_in_m</span><span class="s2">, </span><span class="s1">cpn_rate</span><span class="s2">, </span><span class="s1">freq): 
+    t_list = gen_t_list(mat_in_m</span><span class="s2">, </span><span class="s1">freq) 
+    cf_list = gen_cf(t_list</span><span class="s2">, </span><span class="s1">cpn_rate</span><span class="s2">, </span><span class="s1">freq) 
+    </span><span class="s2">return </span><span class="s1">bond_yield_deriv_w_lists(yld</span><span class="s2">, </span><span class="s1">t_list</span><span class="s2">, </span><span class="s1">cf_list) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">bond_yield_deriv_w_lists(yld</span><span class="s2">, </span><span class="s1">t_list</span><span class="s2">, </span><span class="s1">cf_list): 
+    </span><span class="s2">assert </span><span class="s1">len(t_list) == len(cf_list) 
+    df_list = df_yld(t_list</span><span class="s2">, </span><span class="s1">yld) 
+    </span><span class="s2">return </span><span class="s1">np.sum(cf_list * df_list * t_list) 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">price_bond_w_dur_cvx(t_list</span><span class="s2">, </span><span class="s1">cf_list</span><span class="s2">, </span><span class="s1">y): 
+    </span><span class="s0">&quot;&quot;&quot; 
+    T = time to maturity in years 
+    n = number of cfs 
+    t_list = vector of cf dates in years 
+    cf_list = vector of cf amounts in years 
+    y = yield of the bond 
+    &quot;&quot;&quot;</span><span class="s1"> 
+    </span><span class="s2">assert </span><span class="s1">(len(t_list) == len(cf_list)) 
+ 
+    price</span><span class="s2">, </span><span class="s1">duration</span><span class="s2">, </span><span class="s1">convexity = </span><span class="s3">0</span><span class="s2">, </span><span class="s3">0</span><span class="s2">, </span><span class="s3">0</span><span class="s1"> 
+    </span><span class="s2">for </span><span class="s1">i </span><span class="s2">in </span><span class="s1">range(</span><span class="s3">0</span><span class="s2">, </span><span class="s1">len(t_list)): 
+        cur_df = df_yld(y</span><span class="s2">, </span><span class="s1">t_list[i]) 
+        price += cf_list[i] * cur_df 
+        duration += t_list[i] * cf_list[i] * cur_df 
+        convexity += (t_list[i] ** </span><span class="s3">2</span><span class="s1">) * cf_list[i] * cur_df 
+ 
+    </span><span class="s2">return </span><span class="s1">price</span><span class="s2">, </span><span class="s1">duration / price</span><span class="s2">, </span><span class="s1">convexity / price 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">ytm_newton(yld_guess</span><span class="s2">, </span><span class="s1">px</span><span class="s2">, </span><span class="s1">mat_in_m</span><span class="s2">, </span><span class="s1">cpn_rate</span><span class="s2">, </span><span class="s1">freq</span><span class="s2">, </span><span class="s1">tol=</span><span class="s3">10</span><span class="s1">**-</span><span class="s3">6</span><span class="s2">, </span><span class="s1">max_iter=</span><span class="s3">100</span><span class="s1">): 
+    </span><span class="s0">&quot;&quot;&quot; Uses Newton's method to compute the yield of a bond &quot;&quot;&quot;</span><span class="s1"> 
+    cur_iter = </span><span class="s3">0</span><span class="s1"> 
+    cur_yld = yld_guess 
+ 
+    </span><span class="s5"># these lists remain the same at each iteration</span><span class="s1"> 
+    t_list = gen_t_list(mat_in_m</span><span class="s2">, </span><span class="s1">freq) 
+    cf_list = gen_cf(t_list</span><span class="s2">, </span><span class="s1">cpn_rate</span><span class="s2">, </span><span class="s1">freq) 
+ 
+    cur_f_val = price_bond_w_lists(cur_yld</span><span class="s2">, </span><span class="s1">t_list</span><span class="s2">, </span><span class="s1">cf_list) - px 
+    print(</span><span class="s4">&quot;initial guessed yield implied price =&quot;</span><span class="s2">, </span><span class="s1">cur_f_val + px) 
+ 
+    </span><span class="s2">while </span><span class="s1">cur_iter &lt; max_iter </span><span class="s2">and </span><span class="s1">np.abs(cur_f_val) &gt; tol: 
+        print(</span><span class="s4">&quot;Not close enough, doing next iteration ...&quot;</span><span class="s1">) 
+        cur_deriv = bond_yield_deriv_w_lists(cur_yld</span><span class="s2">, </span><span class="s1">t_list</span><span class="s2">, </span><span class="s1">cf_list) 
+        print(</span><span class="s4">&quot;current yield =&quot;</span><span class="s2">, </span><span class="s1">cur_yld) 
+        cur_yld = cur_yld + (cur_f_val / cur_deriv) 
+        print(</span><span class="s4">&quot;new yield =&quot;</span><span class="s2">, </span><span class="s1">cur_yld) 
+        cur_f_val = price_bond_w_lists(cur_yld</span><span class="s2">, </span><span class="s1">t_list</span><span class="s2">, </span><span class="s1">cf_list) - px 
+        print(</span><span class="s4">&quot;new price =&quot;</span><span class="s2">, </span><span class="s1">cur_f_val + px</span><span class="s2">, </span><span class="s4">&quot;</span><span class="s2">\n</span><span class="s4">&quot;</span><span class="s1">) 
+        cur_iter += </span><span class="s3">1</span><span class="s1"> 
+ 
+    </span><span class="s2">return </span><span class="s1">cur_yld 
+ 
+ 
+</span><span class="s2">def </span><span class="s1">generic_newton(x_guess</span><span class="s2">, </span><span class="s1">f_of_x</span><span class="s2">, </span><span class="s1">fprime_of_x</span><span class="s2">, </span><span class="s1">tol_consec=</span><span class="s3">10</span><span class="s1">**-</span><span class="s3">6</span><span class="s2">, </span><span class="s1">max_iter=</span><span class="s3">100</span><span class="s2">, </span><span class="s1">is_verbose = </span><span class="s2">True</span><span class="s1">): 
+    </span><span class="s0">&quot;&quot;&quot; Uses newton's method to find the 0, provide a function and its derivative &quot;&quot;&quot;</span><span class="s1"> 
+    cur_iter = </span><span class="s3">0</span><span class="s1"> 
+    cur_x = x_guess 
+ 
+    cur_f_val = f_of_x(cur_x) 
+    cur_chg = cur_f_val 
+    </span><span class="s2">if </span><span class="s1">is_verbose: print(</span><span class="s4">&quot;f(initial guess) =&quot;</span><span class="s2">, </span><span class="s1">cur_f_val) 
+ 
+    </span><span class="s2">while </span><span class="s1">cur_iter &lt; max_iter </span><span class="s2">and </span><span class="s1">np.abs(cur_chg) &gt; tol_consec: 
+        </span><span class="s2">if </span><span class="s1">is_verbose: print(</span><span class="s4">&quot;Not close enough, doing next iteration: %s&quot; </span><span class="s1">% str(cur_iter + </span><span class="s3">1</span><span class="s1">)) 
+        cur_deriv = fprime_of_x(cur_x) 
+        cur_x = cur_x - (cur_f_val / cur_deriv) 
+        </span><span class="s2">if </span><span class="s1">is_verbose: print(</span><span class="s4">&quot;new x =&quot;</span><span class="s2">, </span><span class="s1">cur_x) 
+        prev_f_val = cur_f_val 
+        cur_f_val = f_of_x(cur_x) 
+        </span><span class="s2">if </span><span class="s1">is_verbose: print(</span><span class="s4">&quot;new f(x) =&quot;</span><span class="s2">, </span><span class="s1">cur_f_val) 
+        cur_chg = (cur_f_val - prev_f_val) 
+        </span><span class="s2">if </span><span class="s1">is_verbose: print(</span><span class="s4">&quot;f(x) change this iteration =&quot;</span><span class="s2">, </span><span class="s1">cur_chg</span><span class="s2">, </span><span class="s4">&quot;</span><span class="s2">\n</span><span class="s4">&quot;</span><span class="s1">) 
+        cur_iter += </span><span class="s3">1</span><span class="s1"> 
+ 
+        </span><span class="s2">if </span><span class="s1">is_verbose: print(</span><span class="s4">&quot;zero was found after %s iterations ... &quot; </span><span class="s1">% cur_iter) 
+    </span><span class="s2">return </span><span class="s1">cur_x 
+</span></pre>
+</body>
+</html>
